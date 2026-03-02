@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}스킬 입력{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>📝 스킬 입력</h2>
+  <button class="btn btn-primary" onclick="openSkillModal()">+ 새 스킬 등록</button>
+</div>
+
+<!-- 스킬 목록 -->
+<div class="card">
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="몬스터명 / 스킬명 검색..." class="input-search" oninput="filterSkills()">
+    <select id="riskFilter" class="select-sm" onchange="filterSkills()">
+      <option value="">전체 위험도</option>
+      <option value="HIGH">🔴 HIGH</option>
+      <option value="MEDIUM">🟡 MEDIUM</option>
+      <option value="LOW">🟢 LOW</option>
+    </select>
+  </div>
+  <div id="skillTableWrap">
+    <table class="data-table" id="skillTable">
+      <thead>
+        <tr>
+          <th>몬스터</th><th>스킬</th><th>버전</th>
+          <th>선딜</th><th>판정</th><th>반응가능</th>
+          <th>가이드</th><th>위험도</th><th>작업</th>
+        </tr>
+      </thead>
+      <tbody id="skillTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 스킬 등록/수정 모달 -->
+<div id="skillModal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeSkillModal()"></div>
+  <div class="modal-box modal-lg">
+    <div class="modal-header">
+      <h3 id="modalTitle">스킬 등록</h3>
+      <button class="modal-close" onclick="closeSkillModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="skillForm">
+        <input type="hidden" id="f_skill_id">
+
+        <div class="form-section">
+          <div class="section-label">기본 정보</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>몬스터명 *</label>
+              <input type="text" id="f_monster_name" class="input" maxlength="100" required>
+            </div>
+            <div class="form-group">
+              <label>스킬명 *</label>
+              <input type="text" id="f_skill_name" class="input" maxlength="100" required>
+            </div>
+            <div class="form-group sm">
+              <label>버전 *</label>
+              <input type="text" id="f_version" class="input" value="1.0.0" maxlength="20" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>스킬 유형</label>
+              <select id="f_skill_type" class="select">
+                <option value="attack">attack</option>
+                <option value="aoe">aoe</option>
+                <option value="special">special</option>
+                <option value="buff">buff</option>
+                <option value="debuff">debuff</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>타겟팅 방식</label>
+              <select id="f_targeting_type" class="select">
+                <option value="area">area (범위)</option>
+                <option value="single">single (단일)</option>
+                <option value="line">line (직선)</option>
+                <option value="random">random</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-label">타이밍 (ms)</div>
+          <div class="form-row timing-row">
+            <div class="form-group sm">
+              <label>선딜 (ms) <span class="hint">공격 시작→판정</span></label>
+              <input type="number" id="f_pre_delay" class="input" value="500" min="0" max="30000" step="50" oninput="updateCalc()">
+            </div>
+            <div class="form-group sm">
+              <label>판정 지속 (ms) <span class="hint">피해 활성 시간</span></label>
+              <input type="number" id="f_active_duration" class="input" value="300" min="1" max="30000" step="50" oninput="updateCalc()">
+            </div>
+            <div class="form-group sm">
+              <label>후딜 (ms) <span class="hint">판정→다음행동</span></label>
+              <input type="number" id="f_post_delay" class="input" value="400" min="0" max="30000" step="50" oninput="updateCalc()">
+            </div>
+          </div>
+          <div class="calc-row">
+            <span>총 행동 시간: <strong id="calc_total">1200ms</strong></span>
+          </div>
+          <div class="form-row timing-row">
+            <div class="form-group sm">
+              <label>회피 가능 시작 (ms)</label>
+              <input type="number" id="f_dodge_start" class="input" value="200" min="0" max="30000" step="50" oninput="updateCalc()">
+            </div>
+            <div class="form-group sm">
+              <label>회피 가능 종료 (ms)</label>
+              <input type="number" id="f_dodge_end" class="input" value="600" min="0" max="30000" step="50" oninput="updateCalc()">
+            </div>
+            <div class="form-group sm calc-display">
+              <label>반응 가능 시간</label>
+              <div class="calc-val" id="calc_reaction">400ms</div>
+            </div>
+          </div>
+
+          <!-- 타이밍 바 시각화 -->
+          <div class="timing-vis">
+            <div id="timingBar" class="timing-bar-wrap"></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-label">가이드 이펙트</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="toggle-label">
+                <input type="checkbox" id="f_guide_exists" onchange="toggleGuide()" checked>
+                <span class="toggle-text">가이드 이펙트 있음</span>
+              </label>
+            </div>
+          </div>
+          <div id="guideFields">
+            <div class="form-row">
+              <div class="form-group sm">
+                <label>가이드 시작 (ms)</label>
+                <input type="number" id="f_guide_start" class="input" value="0" min="0" max="30000">
+              </div>
+              <div class="form-group sm">
+                <label>가이드 지속 (ms)</label>
+                <input type="number" id="f_guide_duration" class="input" value="500" min="0" max="30000">
+              </div>
+              <div class="form-group">
+                <label>가이드 유형</label>
+                <select id="f_guide_type" class="select">
+                  <option value="visual">visual (시각)</option>
+                  <option value="sound">sound (청각)</option>
+                  <option value="both">both (시각+청각)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>가이드 강도 <span id="guide_intensity_val">3</span></label>
+                <input type="range" id="f_guide_intensity" min="1" max="5" value="3" class="range" oninput="document.getElementById('guide_intensity_val').textContent=this.value">
+              </div>
+              <div class="form-group">
+                <label>시야 가시성 <span id="guide_visibility_val">3</span></label>
+                <input type="range" id="f_guide_visibility" min="1" max="5" value="3" class="range" oninput="document.getElementById('guide_visibility_val').textContent=this.value">
+              </div>
+              <div class="form-group">
+                <label class="toggle-label">
+                  <input type="checkbox" id="f_guide_match" checked>
+                  <span class="toggle-text">판정과 가이드 범위 일치</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-label">설계 의도</div>
+          <textarea id="f_design_intent" class="textarea" rows="3" maxlength="500" placeholder="예) 중급자 대상. 선딜로 예고 후 좌우 회피 유도."></textarea>
+        </div>
+
+        <!-- 실시간 지표 미리보기 -->
+        <div class="form-section" id="metricsPreview">
+          <div class="section-label">예상 지표 (저장 전 미리보기)</div>
+          <div id="previewBars" class="metric-bars"></div>
+        </div>
+
+        <div id="formErrors" class="alert alert-error hidden"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeSkillModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitSkill()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 스킬 상세 모달 -->
+<div id="detailModal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeDetailModal()"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="detailTitle">스킬 상세</h3>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/skills.js') }}"></script>
+{% endblock %}

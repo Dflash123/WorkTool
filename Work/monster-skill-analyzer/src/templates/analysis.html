@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}분석 대시보드{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>📊 분석 대시보드</h2>
+  <button class="btn btn-secondary" onclick="loadAnalysis()">🔄 새로고침</button>
+</div>
+
+<!-- 위험 현황 요약 -->
+<div class="summary-cards" id="summaryCards"></div>
+
+<!-- 탭 -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('overview')">전체 요약</button>
+  <button class="tab-btn" onclick="switchTab('risk')">위험 패턴</button>
+  <button class="tab-btn" onclick="switchTab('detail')">스킬 상세</button>
+</div>
+
+<!-- 전체 요약 -->
+<div id="tab_overview" class="tab-content">
+  <div class="card">
+    <h3>스킬별 지표 요약</h3>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="summaryTable">
+        <thead>
+          <tr>
+            <th>몬스터</th><th>스킬</th><th>버전</th>
+            <th>반응여유</th><th>공정성</th><th>억까가능</th>
+            <th>설계적중</th><th>위험도</th><th>체감수</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <h3>스킬별 공정성 점수</h3>
+      <canvas id="chartFairness"></canvas>
+    </div>
+    <div class="card">
+      <h3>스킬별 억까 가능성</h3>
+      <canvas id="chartUnfair"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 위험 패턴 -->
+<div id="tab_risk" class="tab-content hidden">
+  <div id="riskHigh" class="card"></div>
+  <div id="riskMedium" class="card"></div>
+  <div id="riskLow" class="card"></div>
+</div>
+
+<!-- 스킬 상세 -->
+<div id="tab_detail" class="tab-content hidden">
+  <div class="card">
+    <div class="form-row">
+      <div class="form-group">
+        <label>스킬 선택</label>
+        <select id="detailSkillSelect" class="select" onchange="loadSkillDetail()">
+          <option value="">스킬 선택...</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="skillDetailContent" class="hidden">
+    <div class="chart-grid">
+      <div class="card">
+        <h3>타이밍 구조</h3>
+        <canvas id="chartTiming"></canvas>
+      </div>
+      <div class="card">
+        <h3>체감 평가 레이더</h3>
+        <canvas id="chartRadar"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>지표 현황</h3>
+      <div id="detailMetrics" class="metric-bars"></div>
+    </div>
+    <div class="card" id="detailWarnings"></div>
+    <div class="card">
+      <h3>서술형 의견</h3>
+      <div id="detailOpinions"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/analysis.js') }}"></script>
+{% endblock %}

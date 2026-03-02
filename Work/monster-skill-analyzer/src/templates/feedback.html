@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}체감 평가{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>⭐ 체감 평가</h2>
+</div>
+
+<div class="two-col">
+  <!-- 입력 폼 -->
+  <div class="card">
+    <h3>평가 입력</h3>
+    <div class="form-group">
+      <label>대상 스킬 *</label>
+      <select id="fb_skill_id" class="select" required>
+        <option value="">스킬 선택...</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>평가자 이름 *</label>
+        <input type="text" id="fb_tester_name" class="input" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label>연결 테스트 로그</label>
+        <select id="fb_log_id" class="select">
+          <option value="none">없음</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:16px">점수 평가 (1~5점)</div>
+
+    <div class="likert-list" id="likertList">
+      <!-- JS로 생성 -->
+    </div>
+
+    <div class="form-group" style="margin-top:12px">
+      <label>서술형 의견</label>
+      <textarea id="fb_opinion" class="textarea" rows="4" maxlength="1000"
+        placeholder="예) 선딜은 충분했지만 가이드 범위가 판정보다 좁아 억까당한 느낌이 있었음."></textarea>
+    </div>
+
+    <div id="fbErrors" class="alert alert-error hidden"></div>
+    <button class="btn btn-primary w-full" onclick="submitFeedback()">평가 저장</button>
+  </div>
+
+  <!-- 평가 목록 -->
+  <div class="card">
+    <h3>평가 이력</h3>
+    <div class="form-group">
+      <select id="fb_filter_skill" class="select" onchange="loadFeedbackList()">
+        <option value="">전체 스킬</option>
+      </select>
+    </div>
+    <div id="fbList" class="fb-list"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/feedback.js') }}"></script>
+{% endblock %}

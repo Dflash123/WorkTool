@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}설정{% endblock %}
+
+{% block content %}
+<div class="page-header"><h2>⚙ 설정</h2></div>
+
+<div class="card">
+  <h3>Google Sheets 연결</h3>
+  <div class="form-group">
+    <label>Spreadsheet ID</label>
+    <p class="hint-text">URL: <code>https://docs.google.com/spreadsheets/d/<strong>[여기]</strong>/edit</code></p>
+    <input type="text" id="s_spreadsheet_id" class="input" value="{{ settings.spreadsheet_id }}" maxlength="200">
+  </div>
+  <div class="form-row" style="align-items:center">
+    <button class="btn btn-primary" onclick="saveSettings()">저장</button>
+    <button class="btn btn-secondary" onclick="testConnection()">연결 테스트</button>
+    <span id="connStatus"></span>
+  </div>
+  <div id="settingsMsg" class="alert hidden" style="margin-top:12px"></div>
+</div>
+
+<div class="card">
+  <h3>인증 상태</h3>
+  <p>로그인 계정: <strong>Google OAuth 인증됨</strong></p>
+  <a href="{{ url_for('auth_logout') }}" class="btn btn-secondary">로그아웃 (계정 변경)</a>
+</div>
+
+<div class="card">
+  <h3>Google Cloud 설정 가이드</h3>
+  <ol class="guide-list">
+    <li><a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a> 접속</li>
+    <li>프로젝트 생성 또는 선택</li>
+    <li><strong>API 및 서비스 → 라이브러리</strong> → <code>Google Sheets API</code> 활성화</li>
+    <li><strong>API 및 서비스 → 라이브러리</strong> → <code>Google Drive API</code> 활성화</li>
+    <li><strong>사용자 인증 정보 → OAuth 2.0 클라이언트 ID 만들기</strong> (유형: 데스크톱 앱)</li>
+    <li>JSON 다운로드 → <code>credentials/client_secret.json</code>으로 저장</li>
+    <li>새 Google 스프레드시트 생성 → URL에서 ID 복사 → 위에 입력</li>
+  </ol>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function saveSettings() {
+  const id = document.getElementById('s_spreadsheet_id').value.trim();
+  const msg = document.getElementById('settingsMsg');
+  try {
+    const res = await api('/api/settings', 'POST', {spreadsheet_id: id});
+    showMsg(msg, res.message || '저장 완료', 'success');
+  } catch(e) {
+    showMsg(msg, e.message, 'error');
+  }
+}
+
+async function testConnection() {
+  const status = document.getElementById('connStatus');
+  status.textContent = '연결 중...';
+  try {
+    const res = await api('/api/analysis', 'GET');
+    status.textContent = '✅ 연결 성공';
+    status.style.color = '#27ae60';
+  } catch(e) {
+    status.textContent = '❌ 연결 실패';
+    status.style.color = '#e74c3c';
+  }
+}
+
+function showMsg(el, text, type) {
+  el.textContent = text;
+  el.className = `alert alert-${type}`;
+}
+</script>
+{% endblock %}

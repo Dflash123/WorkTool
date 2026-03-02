@@ -1,0 +1,21 @@
+app:
+  auto_save: true
+  date_format: '%Y-%m-%d'
+  datetime_format: '%Y-%m-%d %H:%M:%S'
+  title: Monster Skill Analyzer
+  version: 1.0.0
+google_sheets:
+  credentials_file: credentials/service_account.json
+  sheets:
+    balance_history: BalanceHistory
+    player_feedback: PlayerFeedback
+    skill_definitions: SkillDefinitions
+    test_logs: TestLogs
+  spreadsheet_id: TEST
+metrics:
+  design_intent_warning: 70
+  fairness_score_danger: 40
+  learnability_warning: 60
+  reaction_margin_danger: 50
+  reaction_reference_ms: 500
+  unfair_hit_danger: 60
