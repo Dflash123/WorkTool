@@ -1,0 +1,9 @@
+# data_collection_engine (Claude A 담당)
+anthropic>=0.25.0
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+youtube-transcript-api>=0.6.0
+python-dotenv>=1.0.0
+
+# web_tool (Claude B 담당 — 아래 항목은 Claude B가 추가)
