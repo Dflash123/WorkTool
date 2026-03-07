@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monster Detail — MMORPG Reference Tool</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">⚔ Monster Reference</span>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Monster DB</a>
+    <a class="nav-link" href="/ranking">Boss Ranking</a>
+    <a class="nav-link" href="/dashboard">Dashboard</a>
+  </div>
+  <div class="nav-spacer"></div>
+  <span class="nav-sync" id="sync-label"></span>
+</nav>
+
+<div class="page">
+  <!-- Header -->
+  <div id="monster-header" class="page-header">
+    <a href="/" style="font-size:13px;color:var(--muted)">← 목록으로</a>
+    <h1 id="monster-name" style="margin-top:8px">불러오는 중...</h1>
+    <div id="monster-meta" class="stat-row" style="margin-top:8px"></div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Pattern Timeline -->
+    <div class="card" style="grid-column: 1 / -1">
+      <div class="card-title">패턴 타임라인 (보스 체력 기준)</div>
+      <div id="timeline-container">
+        <div class="loading">패턴 데이터 불러오는 중...</div>
+      </div>
+      <div id="pattern-list" style="margin-top:20px"></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Video -->
+    <div class="card">
+      <div class="card-title">영상</div>
+      <div id="video-embed" style="margin-bottom:12px">
+        <div class="empty">영상 없음</div>
+      </div>
+      <div id="video-list" class="video-list"></div>
+    </div>
+
+    <!-- Votes -->
+    <div class="card">
+      <div class="card-title">팀 투표</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+        이 보스에 대한 의견을 투표해주세요. (1인 1표)
+      </p>
+      <div class="vote-grid" id="vote-grid">
+        <button class="vote-btn" onclick="castVote('fun')">
+          ⭐ 재미있음 <span class="vote-count" id="cnt-fun">0</span>
+        </button>
+        <button class="vote-btn" onclick="castVote('difficulty')">
+          💀 어려움 <span class="vote-count" id="cnt-difficulty">0</span>
+        </button>
+        <button class="vote-btn" onclick="castVote('design_reference')">
+          📌 레퍼런스 <span class="vote-count" id="cnt-design_reference">0</span>
+        </button>
+      </div>
+      <div id="vote-error" class="error-msg"></div>
+      <div style="margin-top:16px;font-size:12px;color:var(--muted)">
+        총 투표: <span id="total-votes">0</span>명
+      </div>
+    </div>
+  </div>
+
+  <!-- Comments -->
+  <div class="card">
+    <div class="card-title">팀 댓글</div>
+    <div class="comment-form">
+      <textarea id="comment-input" placeholder="이 보스에 대한 디자인 분석이나 메모를 남겨주세요..." rows="2"></textarea>
+      <button class="btn btn-primary" onclick="submitComment()">등록</button>
+    </div>
+    <div id="comment-error" class="error-msg"></div>
+    <div id="comment-list" class="comment-list">
+      <div class="loading">댓글 불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip-box" id="tooltip"></div>
+
+<script src="/script.js"></script>
+<script>
+  const monsterId = qs("id");
+  if (!monsterId) location.href = "/";
+
+  let currentVideos = [];
+  let myVotes = new Set();
+
+  async function load() {
+    try {
+      const [monsters, patternData, videoData, commentData, voteData] = await Promise.all([
+        API.monsters(),
+        API.patterns(monsterId),
+        API.videos(monsterId),
+        API.comments(monsterId),
+        API.votes(monsterId),
+      ]);
+
+      const monster = monsters.find(m => m.id === monsterId);
+      if (!monster) { document.getElementById("monster-name").textContent = "몬스터를 찾을 수 없습니다."; return; }
+
+      renderHeader(monster);
+      renderTimeline(patternData);
+      renderVideos(videoData);
+      renderVotes(voteData);
+      renderComments(commentData);
+    } catch(e) {
+      document.getElementById("monster-name").textContent = "로드 실패: " + e.message;
+    }
+  }
+
+  function renderHeader(m) {
+    document.title = `${m.name} — MMORPG Reference Tool`;
+    document.getElementById("monster-name").textContent = m.name;
+    const avg = funAvg(m.fun_factor_score);
+    document.getElementById("monster-meta").innerHTML = `
+      ${monsterTypeBadge(m.monster_type)}
+      <div class="stat-chip">${m.game}</div>
+      <div class="stat-chip">${m.raid || "-"}</div>
+      ${avg !== null ? `<div class="stat-chip">재미 평균 <strong>${avg}</strong></div>` : ""}
+      ${m.mechanic_complexity !== null ? `<div class="stat-chip">복잡도 <strong>${m.mechanic_complexity}</strong></div>` : ""}
+    `;
+  }
+
+  function renderTimeline(patternData) {
+    const container = document.getElementById("timeline-container");
+    const listEl    = document.getElementById("pattern-list");
+    const entry = patternData && patternData[0];
+    const timeline  = entry ? entry.timeline : [];
+
+    if (!timeline.length) {
+      container.innerHTML = '<div class="empty">패턴 데이터가 없습니다.</div>';
+      listEl.innerHTML = "";
+      return;
+    }
+
+    // Draw track
+    container.innerHTML = `
+      <div class="timeline-wrap">
+        <div class="timeline-track" id="tl-track"></div>
+        <div class="timeline-axis">
+          <span>HP 100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+        </div>
+      </div>`;
+
+    const track = document.getElementById("tl-track");
+    timeline.forEach((p, i) => {
+      const pct = 100 - p.hp_percent; // 100% HP → left, 0% HP → right
+      const typeClass = patternTypeClass(p.pattern_type);
+      const marker = document.createElement("div");
+      marker.className = "timeline-marker";
+      marker.style.left = `${pct}%`;
+      marker.innerHTML = `
+        <div class="timeline-label">${p.hp_percent}%</div>
+        <div class="timeline-dot ${typeClass}"></div>`;
+      marker.addEventListener("mouseenter", (e) => showTooltip(e, p));
+      marker.addEventListener("mouseleave", hideTooltip);
+      marker.addEventListener("mousemove", moveTooltip);
+      track.appendChild(marker);
+    });
+
+    // Pattern list table
+    listEl.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>HP%</th><th>패턴명</th><th>유형</th><th>난이도</th>
+          <th>반응시간</th><th>실패 페널티</th><th>성공 보상</th>
+        </tr></thead>
+        <tbody>${timeline.map(p => `
+          <tr>
+            <td><strong>${p.hp_percent}%</strong></td>
+            <td class="td-name">${p.pattern_name}</td>
+            <td><span class="badge ${patternTypeClass(p.pattern_type)}" style="opacity:.9">${p.pattern_type}</span></td>
+            <td>${p.difficulty || "-"}</td>
+            <td>${p.reaction_window_sec != null ? p.reaction_window_sec + "s" : "-"}</td>
+            <td class="td-muted">${p.failure_penalty || "-"}</td>
+            <td class="td-muted">${p.success_reward || "-"}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  function renderVideos(videos) {
+    currentVideos = videos;
+    const embedEl = document.getElementById("video-embed");
+    const listEl  = document.getElementById("video-list");
+
+    if (!videos.length) {
+      embedEl.innerHTML = '<div class="empty">영상 없음</div>';
+      listEl.innerHTML  = "";
+      return;
+    }
+
+    selectVideo(videos[0], 0);
+    listEl.innerHTML = videos.map((v, i) => {
+      const views = v.view_count ? v.view_count.toLocaleString() + " views" : "";
+      return `<div class="video-item ${i === 0 ? "active" : ""}" id="vitem-${i}" onclick="selectVideo(currentVideos[${i}], ${i})">
+        <div class="video-title">${v.title}</div>
+        <div class="video-meta">${v.channel || ""}${views ? " · " + views : ""}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function selectVideo(v, idx) {
+    document.querySelectorAll(".video-item").forEach((el, i) => el.classList.toggle("active", i === idx));
+    const embedEl = document.getElementById("video-embed");
+    if (v.analysis_status === "skipped" || !v.youtube_id || v.youtube_id.startsWith("placeholder")) {
+      embedEl.innerHTML = '<div class="empty">영상 준비 중</div>';
+      return;
+    }
+    embedEl.innerHTML = `<div class="video-container">
+      <iframe src="https://www.youtube.com/embed/${v.youtube_id}" allowfullscreen loading="lazy"></iframe>
+    </div>`;
+  }
+
+  function renderVotes(votes) {
+    const username = User.name;
+    myVotes = new Set(votes.filter(v => v.user_name === username).map(v => v.vote_type));
+
+    ["fun", "difficulty", "design_reference"].forEach(type => {
+      const cnt = votes.filter(v => v.vote_type === type).length;
+      document.getElementById(`cnt-${type}`).textContent = cnt;
+      const btn = document.querySelector(`[onclick="castVote('${type}')"]`);
+      if (btn) btn.classList.toggle("voted", myVotes.has(type));
+    });
+    document.getElementById("total-votes").textContent = votes.length;
+  }
+
+  async function castVote(voteType) {
+    const username = User.require();
+    if (!username) return;
+    const errEl = document.getElementById("vote-error");
+    errEl.textContent = "";
+    try {
+      await API.addVote({ monster_id: monsterId, user_name: username, vote_type: voteType });
+      const votes = await API.votes(monsterId);
+      renderVotes(votes);
+    } catch(e) {
+      errEl.textContent = e.message === "Already voted" ? "이미 투표했습니다." : e.message;
+    }
+  }
+
+  function renderComments(comments) {
+    const listEl = document.getElementById("comment-list");
+    if (!comments.length) { listEl.innerHTML = '<div class="empty">첫 댓글을 남겨보세요.</div>'; return; }
+    listEl.innerHTML = comments.map(c => `
+      <div class="comment-item">
+        <div class="comment-header">
+          <span class="comment-author">${c.user_name}</span>
+          <span class="comment-date">${formatDate(c.date)}</span>
+        </div>
+        <div class="comment-text">${c.comment.replace(/</g, "&lt;")}</div>
+      </div>`).join("");
+  }
+
+  async function submitComment() {
+    const username = User.require();
+    if (!username) return;
+    const input  = document.getElementById("comment-input");
+    const errEl  = document.getElementById("comment-error");
+    const comment = input.value.trim();
+    errEl.textContent = "";
+    if (!comment) { errEl.textContent = "댓글을 입력해주세요."; return; }
+    try {
+      await API.addComment({ monster_id: monsterId, user_name: username, comment });
+      input.value = "";
+      renderComments(await API.comments(monsterId));
+    } catch(e) {
+      errEl.textContent = e.message;
+    }
+  }
+
+  // Tooltip
+  const tooltip = document.getElementById("tooltip");
+  function showTooltip(e, p) {
+    tooltip.innerHTML = `
+      <div class="tooltip-title">${p.pattern_name}</div>
+      <div class="tooltip-row"><span class="tooltip-key">유형</span><span>${p.pattern_type}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">난이도</span><span>${p.difficulty || "-"}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">반응시간</span><span>${p.reaction_window_sec != null ? p.reaction_window_sec + "s" : "-"}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">실패</span><span>${p.failure_penalty || "-"}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">성공</span><span>${p.success_reward || "-"}</span></div>
+      ${p.notes ? `<div class="tooltip-row"><span class="tooltip-key">메모</span><span>${p.notes}</span></div>` : ""}`;
+    tooltip.classList.add("show");
+    moveTooltip(e);
+  }
+  function moveTooltip(e) {
+    tooltip.style.left = (e.clientX + 12) + "px";
+    tooltip.style.top  = (e.clientY + 12) + "px";
+  }
+  function hideTooltip() { tooltip.classList.remove("show"); }
+
+  load();
+  setupAutoSync(load);
+</script>
+</body>
+</html>

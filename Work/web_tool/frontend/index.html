@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monster DB — MMORPG Reference Tool</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">⚔ Monster Reference</span>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Monster DB</a>
+    <a class="nav-link" href="/ranking">Boss Ranking</a>
+    <a class="nav-link" href="/dashboard">Dashboard</a>
+  </div>
+  <div class="nav-spacer"></div>
+  <span class="nav-sync" id="sync-label"></span>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Monster Database</h1>
+    <p>몬스터를 클릭하면 패턴 타임라인과 영상을 볼 수 있습니다.</p>
+  </div>
+
+  <div class="card">
+    <div class="filter-bar">
+      <input type="text" id="search" placeholder="몬스터 이름 / 게임 검색...">
+      <select id="filter-game"><option value="">전체 게임</option></select>
+      <select id="filter-type">
+        <option value="">전체 유형</option>
+        <option value="Raid">Raid</option>
+        <option value="Dungeon">Dungeon</option>
+        <option value="Field">Field</option>
+        <option value="Elite">Elite</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table id="monster-table">
+        <thead>
+          <tr>
+            <th>몬스터</th>
+            <th>게임</th>
+            <th>레이드</th>
+            <th>유형</th>
+            <th>재미 점수</th>
+            <th>복잡도</th>
+            <th>태그</th>
+          </tr>
+        </thead>
+        <tbody id="monster-tbody">
+          <tr><td colspan="7" class="loading">데이터 불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/script.js"></script>
+<script>
+  let allMonsters = [];
+
+  async function load() {
+    try {
+      allMonsters = await API.monsters();
+      populateGameFilter();
+      render();
+    } catch(e) {
+      document.getElementById("monster-tbody").innerHTML =
+        `<tr><td colspan="7" class="error-msg">로드 실패: ${e.message}</td></tr>`;
+    }
+  }
+
+  function populateGameFilter() {
+    const games = [...new Set(allMonsters.map(m => m.game))].sort();
+    const sel = document.getElementById("filter-game");
+    games.forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g; opt.textContent = g;
+      sel.appendChild(opt);
+    });
+  }
+
+  function render() {
+    const search = document.getElementById("search").value.toLowerCase();
+    const gameFilter = document.getElementById("filter-game").value;
+    const typeFilter = document.getElementById("filter-type").value;
+
+    const filtered = allMonsters.filter(m => {
+      if (search && !m.name.toLowerCase().includes(search) && !m.game.toLowerCase().includes(search)) return false;
+      if (gameFilter && m.game !== gameFilter) return false;
+      if (typeFilter && m.monster_type !== typeFilter) return false;
+      return true;
+    });
+
+    const tbody = document.getElementById("monster-tbody");
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty">검색 결과가 없습니다.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(m => {
+      const avg = funAvg(m.fun_factor_score);
+      const complexity = m.mechanic_complexity;
+      const tags = (m.boss_fun_type || []).map(t => `<span class="badge badge-tag">${t}</span>`).join("");
+
+      const funBar = avg !== null
+        ? `<div class="score-bar"><div class="score-bar-track"><div class="score-bar-fill" style="width:${avg * 10}%"></div></div><span class="score-val">${avg}</span></div>`
+        : `<span class="td-muted">-</span>`;
+
+      const complexBar = complexity !== null
+        ? `<div class="score-bar"><div class="score-bar-track"><div class="score-bar-fill" style="width:${complexity * 10}%"></div></div><span class="score-val">${complexity}</span></div>`
+        : `<span class="td-muted">-</span>`;
+
+      return `<tr onclick="location.href='/monster?id=${encodeURIComponent(m.id)}'">
+        <td class="td-name">${m.name}</td>
+        <td class="td-muted">${m.game}</td>
+        <td class="td-muted">${m.raid || "-"}</td>
+        <td>${monsterTypeBadge(m.monster_type)}</td>
+        <td>${funBar}</td>
+        <td>${complexBar}</td>
+        <td>${tags || '<span class="td-muted">-</span>'}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  document.getElementById("search").addEventListener("input", render);
+  document.getElementById("filter-game").addEventListener("change", render);
+  document.getElementById("filter-type").addEventListener("change", render);
+
+  load();
+  setupAutoSync(load);
+</script>
+</body>
+</html>

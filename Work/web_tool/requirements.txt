@@ -7,3 +7,4 @@ youtube-transcript-api>=0.6.0
 python-dotenv>=1.0.0
 
 # web_tool (Claude B 담당 — 아래 항목은 Claude B가 추가)
+flask>=2.3.0

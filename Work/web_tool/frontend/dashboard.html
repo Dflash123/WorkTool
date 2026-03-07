@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — MMORPG Reference Tool</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">⚔ Monster Reference</span>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Monster DB</a>
+    <a class="nav-link" href="/ranking">Boss Ranking</a>
+    <a class="nav-link" href="/dashboard">Dashboard</a>
+  </div>
+  <div class="nav-spacer"></div>
+  <span class="nav-sync" id="sync-label"></span>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Analysis Dashboard</h1>
+    <p>수집된 보스 데이터의 분포와 경향을 분석합니다.</p>
+  </div>
+
+  <div id="stats-bar" class="stat-row" style="margin-bottom:20px"></div>
+
+  <div id="dashboard-root">
+    <div class="loading">차트 데이터 불러오는 중...</div>
+  </div>
+</div>
+
+<script src="/script.js"></script>
+<script>
+  const CHART_DEFAULTS = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: "#e8e8f0", font: { size: 12 } } } },
+  };
+
+  const COLORS = [
+    "#4a90e2","#7c5cbf","#e24a6a","#4ae2a0","#e2b44a","#e2804a","#60c0c0","#c060c0",
+  ];
+
+  function chartAxes(xLabel, yLabel) {
+    return {
+      x: { ticks: { color: "#7a7a9a" }, grid: { color: "#2a2a4a" }, title: { display: !!xLabel, text: xLabel, color: "#7a7a9a" } },
+      y: { ticks: { color: "#7a7a9a" }, grid: { color: "#2a2a4a" }, title: { display: !!yLabel, text: yLabel, color: "#7a7a9a" } },
+    };
+  }
+
+  async function load() {
+    try {
+      const [monsters, patterns] = await Promise.all([API.monsters(), API.ranking().catch(() => null)]);
+      renderStatsBar(monsters, patterns);
+      renderDashboard(monsters, await (API.get("/api/patterns").catch(() => [])));
+    } catch(e) {
+      document.getElementById("dashboard-root").innerHTML = `<div class="error-msg">로드 실패: ${e.message}</div>`;
+    }
+  }
+
+  function renderStatsBar(monsters) {
+    const el = document.getElementById("stats-bar");
+    const games = new Set(monsters.map(m => m.game)).size;
+    el.innerHTML = `
+      <div class="stat-chip">총 보스 <strong>${monsters.length}</strong></div>
+      <div class="stat-chip">게임 수 <strong>${games}</strong></div>
+      <div class="stat-chip">평가 완료 <strong>${monsters.filter(m => m.mechanic_complexity !== null).length}</strong></div>
+      <div class="stat-chip">미평가 <strong>${monsters.filter(m => m.mechanic_complexity === null).length}</strong></div>`;
+  }
+
+  function renderDashboard(monsters, patterns) {
+    const root = document.getElementById("dashboard-root");
+    root.innerHTML = `
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card"><div class="card-title">재미 점수 분포</div><div style="height:280px"><canvas id="chart-fun"></canvas></div></div>
+        <div class="card"><div class="card-title">패턴 유형 분포</div><div style="height:280px"><canvas id="chart-pattern-type"></canvas></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">메카닉 복잡도</div><div style="height:280px"><canvas id="chart-complexity"></canvas></div></div>
+        <div class="card"><div class="card-title">게임별 보스 수</div><div style="height:280px"><canvas id="chart-games"></canvas></div></div>
+      </div>`;
+
+    buildFunChart(monsters);
+    buildPatternTypeChart(patterns);
+    buildComplexityChart(monsters);
+    buildGamesChart(monsters);
+  }
+
+  // Chart 1: Fun score bar (per monster)
+  function buildFunChart(monsters) {
+    const data = monsters
+      .map(m => ({ name: m.name, avg: parseFloat(funAvg(m.fun_factor_score)) }))
+      .filter(d => !isNaN(d.avg))
+      .sort((a, b) => b.avg - a.avg);
+
+    new Chart(document.getElementById("chart-fun"), {
+      type: "bar",
+      data: {
+        labels: data.map(d => d.name),
+        datasets: [{ label: "재미 평균", data: data.map(d => d.avg), backgroundColor: "#4a90e2", borderRadius: 4 }],
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        scales: { ...chartAxes("", "점수"), y: { ...chartAxes("","점수").y, min: 0, max: 10 } },
+        plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } },
+      },
+    });
+  }
+
+  // Chart 2: Pattern type doughnut
+  function buildPatternTypeChart(patterns) {
+    const counts = {};
+    patterns.forEach(p => p.timeline.forEach(t => {
+      counts[t.pattern_type] = (counts[t.pattern_type] || 0) + 1;
+    }));
+    const labels = Object.keys(counts);
+    const vals   = labels.map(l => counts[l]);
+
+    new Chart(document.getElementById("chart-pattern-type"), {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{ data: vals, backgroundColor: COLORS.slice(0, labels.length), borderColor: "#1a1a2e", borderWidth: 2 }],
+      },
+      options: { ...CHART_DEFAULTS, cutout: "55%" },
+    });
+  }
+
+  // Chart 3: Mechanic complexity horizontal bar
+  function buildComplexityChart(monsters) {
+    const data = monsters
+      .filter(m => m.mechanic_complexity !== null)
+      .sort((a, b) => b.mechanic_complexity - a.mechanic_complexity);
+
+    new Chart(document.getElementById("chart-complexity"), {
+      type: "bar",
+      data: {
+        labels: data.map(m => m.name),
+        datasets: [{ label: "복잡도", data: data.map(m => m.mechanic_complexity), backgroundColor: "#7c5cbf", borderRadius: 4 }],
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        indexAxis: "y",
+        scales: { ...chartAxes("복잡도",""), x: { ...chartAxes("복잡도","").x, min: 0, max: 10 } },
+        plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } },
+      },
+    });
+  }
+
+  // Chart 4: Bosses per game
+  function buildGamesChart(monsters) {
+    const counts = {};
+    monsters.forEach(m => { counts[m.game] = (counts[m.game] || 0) + 1; });
+    const labels = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+    new Chart(document.getElementById("chart-games"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{ label: "보스 수", data: labels.map(l => counts[l]), backgroundColor: "#4ae2a0", borderRadius: 4 }],
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        scales: { ...chartAxes("","보스 수"), y: { ...chartAxes("","보스 수").y, beginAtZero: true, ticks: { ...chartAxes().y?.ticks, stepSize: 1 } } },
+        plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } },
+      },
+    });
+  }
+
+  load();
+  setupAutoSync(load);
+</script>
+</body>
+</html>

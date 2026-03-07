@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boss Ranking — MMORPG Reference Tool</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">⚔ Monster Reference</span>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Monster DB</a>
+    <a class="nav-link" href="/ranking">Boss Ranking</a>
+    <a class="nav-link" href="/dashboard">Dashboard</a>
+  </div>
+  <div class="nav-spacer"></div>
+  <span class="nav-sync" id="sync-label"></span>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Boss Ranking</h1>
+    <p>각 카테고리별 보스 순위입니다.</p>
+  </div>
+
+  <div id="ranking-root">
+    <div class="loading">랭킹 데이터 불러오는 중...</div>
+  </div>
+</div>
+
+<script src="/script.js"></script>
+<script>
+  const CATEGORIES = [
+    {
+      key: "most_difficult",
+      label: "💀 Most Difficult Boss",
+      desc: "메카닉 복잡도 기준",
+      getValue: m => m.mechanic_complexity !== null ? `복잡도 ${m.mechanic_complexity}` : "미평가",
+    },
+    {
+      key: "most_fun",
+      label: "⭐ Most Fun Boss",
+      desc: "재미 점수 평균 기준",
+      getValue: m => {
+        const avg = funAvg(m.fun_factor_score);
+        return avg !== null ? `평균 ${avg}` : "미평가";
+      },
+    },
+    {
+      key: "most_unique_mechanic",
+      label: "🔮 Most Unique Mechanic",
+      desc: "패턴 유형 다양성 기준",
+      getValue: (m, extra) => extra ? `${extra}가지 패턴 유형` : "-",
+    },
+    {
+      key: "most_viewed",
+      label: "👁 Most Viewed Boss",
+      desc: "YouTube 조회수 합산 기준",
+      getValue: (m, extra) => extra ? `${Number(extra).toLocaleString()} views` : "데이터 없음",
+    },
+  ];
+
+  // Extra values computed per-category server-side — we display them via the ranked order
+  function extraValue(key, monster, ranking) {
+    if (key === "most_unique_mechanic") {
+      // We can't easily get pattern count from API here, just show rank
+      return null;
+    }
+    if (key === "most_viewed") {
+      return null;
+    }
+    return null;
+  }
+
+  async function load() {
+    try {
+      const ranking = await API.ranking();
+      render(ranking);
+    } catch(e) {
+      document.getElementById("ranking-root").innerHTML = `<div class="error-msg">로드 실패: ${e.message}</div>`;
+    }
+  }
+
+  function render(ranking) {
+    const root = document.getElementById("ranking-root");
+
+    const sections = CATEGORIES.map(cat => {
+      const list = ranking[cat.key] || [];
+      const items = list.map((m, i) => {
+        const numClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+        const val = getDisplayVal(cat.key, m);
+
+        return `<div class="rank-item" onclick="location.href='/monster?id=${encodeURIComponent(m.id)}'">
+          <div class="rank-num ${numClass}">#${i + 1}</div>
+          <div class="rank-info">
+            <div class="rank-name">${m.name}</div>
+            <div class="rank-sub">${m.game} · ${m.raid || ""}</div>
+          </div>
+          <div class="rank-val">${val}</div>
+          ${monsterTypeBadge(m.monster_type)}
+        </div>`;
+      }).join("");
+
+      const empty = list.length === 0
+        ? '<div class="empty">데이터 없음 (collector 실행 후 갱신됩니다)</div>'
+        : "";
+
+      return `<div class="ranking-section">
+        <div class="ranking-title">
+          ${cat.label}
+          <span style="font-size:12px;font-weight:400;color:var(--muted)">${cat.desc}</span>
+        </div>
+        <div class="rank-list">${items}${empty}</div>
+      </div>`;
+    });
+
+    root.innerHTML = sections.join("");
+  }
+
+  function getDisplayVal(key, m) {
+    if (key === "most_difficult") {
+      return m.mechanic_complexity !== null ? `복잡도 ${m.mechanic_complexity}` : "미평가";
+    }
+    if (key === "most_fun") {
+      const avg = funAvg(m.fun_factor_score);
+      return avg !== null ? `평균 ${avg}점` : "미평가";
+    }
+    if (key === "most_unique_mechanic") return "다양한 메카닉";
+    if (key === "most_viewed") return "높은 조회수";
+    return "";
+  }
+
+  load();
+  setupAutoSync(load);
+</script>
+</body>
+</html>
