@@ -1,23 +1,53 @@
-{
-  "_note": "이 파일은 data_collection_engine (collector)이 관리합니다. 직접 수정하지 마세요.",
-  "monsters": [
-    {
-      "id": "lostark_brelshaza",
-      "name": "Brelshaza",
-      "game": "Lost Ark",
-      "raid": "Phantom Legion Commander",
-      "difficulty": "raid",
-      "fun_factor_score": 9,
-      "mechanic_complexity": 9
+[
+  {
+    "_note": "이 파일은 data_collection_engine (collector)이 관리합니다. web_tool은 읽기전용.",
+    "id": "lostark_brelshaza",
+    "name": "Brelshaza",
+    "game": "Lost Ark",
+    "raid": "Phantom Legion Commander",
+    "monster_type": "Raid",
+    "release_patch": "1.3",
+    "boss_fun_type": ["Puzzle Boss", "Mechanic Boss"],
+    "design_reference_tags": ["phase_transition", "puzzle_mechanic"],
+    "fun_factor_score": {
+      "reaction": null,
+      "teamplay": null,
+      "mechanic_uniqueness": null,
+      "visual_spectacle": null,
+      "difficulty": null,
+      "punishment": null
     },
-    {
-      "id": "ff14_alexander",
-      "name": "Alexander Prime",
-      "game": "Final Fantasy XIV",
-      "raid": "The Epic of Alexander (Ultimate)",
-      "difficulty": "ultimate",
-      "fun_factor_score": 10,
-      "mechanic_complexity": 10
-    }
-  ]
-}
+    "mechanic_complexity": null,
+    "boss_ranking": {
+      "difficulty_rank": null,
+      "fun_rank": null,
+      "composite_score": null
+    },
+    "last_updated": "2026-03-07"
+  },
+  {
+    "id": "ff14_alexander",
+    "name": "Alexander Prime",
+    "game": "Final Fantasy XIV",
+    "raid": "The Epic of Alexander (Ultimate)",
+    "monster_type": "Raid",
+    "release_patch": "5.3",
+    "boss_fun_type": ["Puzzle Boss", "Reaction Boss"],
+    "design_reference_tags": ["time_mechanic", "ultimate_tier"],
+    "fun_factor_score": {
+      "reaction": null,
+      "teamplay": null,
+      "mechanic_uniqueness": null,
+      "visual_spectacle": null,
+      "difficulty": null,
+      "punishment": null
+    },
+    "mechanic_complexity": null,
+    "boss_ranking": {
+      "difficulty_rank": null,
+      "fun_rank": null,
+      "composite_score": null
+    },
+    "last_updated": "2026-03-07"
+  }
+]

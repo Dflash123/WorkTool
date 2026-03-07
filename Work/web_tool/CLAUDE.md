@@ -6,7 +6,7 @@
 
 | 인스턴스 | 담당 모듈 | 소유 파일 |
 |----------|----------|----------|
-| Instance A (data_collection_engine) | `collector/`, `timeline_extractor/` | `data/monsters.json`, `data/patterns.json`, `data/videos.json` |
+| Instance A (data_collection_engine) | `collector/`, `timeline_extractor/`, `scheduler/` | `data/monsters.json`, `data/patterns.json`, `data/videos.json`, `run_collector.py` |
 | Instance B (web_tool) | `frontend/`, `app.py` | `data/comments.json`, `data/votes.json` |
 
 ### 절대 금지 사항
@@ -14,11 +14,14 @@
 이 인스턴스(web_tool)는 아래 파일/폴더를 **절대 수정하지 않는다**:
 
 ```
-collector/              # Instance A 소유
-timeline_extractor/     # Instance A 소유
-data/monsters.json      # Instance A가 생성/관리
-data/patterns.json      # Instance A가 생성/관리
-data/videos.json        # Instance A가 생성/관리
+collector/                    # Instance A 소유
+timeline_extractor/           # Instance A 소유
+scheduler/                    # Instance A 소유
+run_collector.py              # Instance A 소유
+data/monsters.json            # Instance A가 생성/관리
+data/patterns.json            # Instance A가 생성/관리
+data/videos.json              # Instance A가 생성/관리
+../mmorpg-monster-reference/  # Instance A의 기획 레퍼런스 문서 (읽기 참고만 가능)
 ```
 
 ### 이 인스턴스의 소유 파일
@@ -93,29 +96,37 @@ web_tool (Instance B = 이 인스턴스)
 | 카테고리 | 소스 | 기준 |
 |----------|------|------|
 | Most Difficult Boss | monsters.json | `mechanic_complexity` DESC |
-| Most Fun Boss | monsters.json | `fun_factor_score` DESC |
+| Most Fun Boss | monsters.json | `fun_factor_score` 6개 항목 평균 DESC (null 제외) |
 | Most Unique Mechanic | patterns.json | `distinct(pattern_type)` 개수 DESC |
-| Most Viewed Boss | videos.json | `view_count` 합산 DESC |
+| Most Viewed Boss | videos.json | `view_count` 합산 DESC (같은 monster_id 영상 합산) |
 
 ---
 
 ## 데이터 스키마 요약
 
 ```
-monsters.json
-  id, name, game, raid, difficulty, fun_factor_score, mechanic_complexity
+monsters.json  (배열 루트)
+  id, name, game, raid, monster_type, release_patch
+  boss_fun_type[], design_reference_tags[]
+  fun_factor_score { reaction, teamplay, mechanic_uniqueness, visual_spectacle, difficulty, punishment }
+  mechanic_complexity, boss_ranking { difficulty_rank, fun_rank, composite_score }
+  last_updated
 
-patterns.json
-  monster_id → timeline[hp_percent, pattern_name, pattern_type, description]
+patterns.json  (배열 루트)
+  monster_id, source_video_id, extracted_at, last_updated
+  timeline[hp_percent, pattern_name, pattern_type, difficulty,
+           reaction_window_sec, failure_penalty, success_reward, notes]
 
-videos.json
-  monster_id, title, youtube_id, duration_seconds, view_count
+videos.json  (배열 루트)
+  youtube_id, monster_id, title, channel
+  view_count, comment_count, duration_seconds
+  upload_date, subtitle_available, analysis_status, collected_at
 
-comments.json  (web_tool 소유)
-  comments[monster_id, user_name, comment, date]
+comments.json  (web_tool 소유, 객체 루트)
+  comments[id, monster_id, user_name, comment, date]
 
-votes.json  (web_tool 소유)
-  votes[monster_id, user_name, vote_type(fun|difficulty|design_reference), date]
+votes.json  (web_tool 소유, 객체 루트)
+  votes[id, monster_id, user_name, vote_type(fun|difficulty|design_reference), date]
 ```
 
 상세 스키마: `docs/SCHEMA.md` 참고

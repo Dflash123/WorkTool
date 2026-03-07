@@ -3,21 +3,21 @@
 ## 시스템 전체 구조
 
 ```
-WorkTool/
-├── data_collection_engine/          (Instance A - 별도 Claude Code)
-│   ├── collector/                   몬스터/영상 데이터 수집
-│   └── timeline_extractor/          패턴 타임라인 추출
+WorkTool/Work/
+├── mmorpg-monster-reference/        (Instance A - 기획 레퍼런스 문서, 수정 금지)
 │
-├── web_tool/                        (Instance B - 이 모듈)
-│   ├── app.py                       Flask API 서버
-│   ├── frontend/                    HTML/CSS/JS
-│   └── data/                        JSON 데이터 파일
-│
-└── data/                            공유 데이터 디렉토리
-    ├── monsters.json   ← Instance A 쓰기, Instance B 읽기
-    ├── patterns.json   ← Instance A 쓰기, Instance B 읽기
-    ├── videos.json     ← Instance A 쓰기, Instance B 읽기
-    ├── comments.json   ← Instance B만 읽기+쓰기
+└── web_tool/                        (두 인스턴스 공유 작업 폴더)
+    ├── collector/                   [Instance A] 몬스터/영상 데이터 수집
+    ├── timeline_extractor/          [Instance A] 패턴 타임라인 추출
+    ├── scheduler/                   [Instance A] 주간 자동 실행
+    ├── run_collector.py             [Instance A] 파이프라인 엔트리포인트
+    ├── app.py                       [Instance B] Flask API 서버
+    ├── frontend/                    [Instance B] HTML/CSS/JS
+    └── data/
+        ├── monsters.json   ← Instance A 쓰기, Instance B 읽기
+        ├── patterns.json   ← Instance A 쓰기, Instance B 읽기
+        ├── videos.json     ← Instance A 쓰기, Instance B 읽기
+        ├── comments.json   ← Instance B만 읽기+쓰기
     └── votes.json      ← Instance B만 읽기+쓰기
 ```
 
