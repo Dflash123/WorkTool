@@ -1,0 +1,63 @@
+{
+  "_note": "이 파일은 data_collection_engine (timeline_extractor)이 관리합니다. 직접 수정하지 마세요.",
+  "patterns": [
+    {
+      "monster_id": "lostark_brelshaza",
+      "timeline": [
+        {
+          "hp_percent": 100,
+          "pattern_name": "Opening Laser",
+          "pattern_type": "aoe",
+          "description": "보스가 전방으로 광역 레이저 공격"
+        },
+        {
+          "hp_percent": 85,
+          "pattern_name": "Meteor Puzzle",
+          "pattern_type": "puzzle",
+          "description": "플레이어 위치 기반 메테오 배치 메카닉"
+        },
+        {
+          "hp_percent": 60,
+          "pattern_name": "Dimension Shift",
+          "pattern_type": "phase_transition",
+          "description": "페이즈 전환 패턴"
+        },
+        {
+          "hp_percent": 30,
+          "pattern_name": "Enrage Pattern",
+          "pattern_type": "enrage",
+          "description": "공격 속도 증가 + 광역 공격"
+        }
+      ]
+    },
+    {
+      "monster_id": "ff14_alexander",
+      "timeline": [
+        {
+          "hp_percent": 100,
+          "pattern_name": "Temporal Stasis",
+          "pattern_type": "mechanic",
+          "description": "시간 정지 메카닉"
+        },
+        {
+          "hp_percent": 75,
+          "pattern_name": "Inception",
+          "pattern_type": "puzzle",
+          "description": "과거/현재 시간대 연동 메카닉"
+        },
+        {
+          "hp_percent": 50,
+          "pattern_name": "Phase Transition",
+          "pattern_type": "phase_transition",
+          "description": "얼터메이트 페이즈 전환"
+        },
+        {
+          "hp_percent": 25,
+          "pattern_name": "J-Kick",
+          "pattern_type": "enrage",
+          "description": "공략 실패시 즉사 패턴"
+        }
+      ]
+    }
+  ]
+}

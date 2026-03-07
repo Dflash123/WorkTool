@@ -1,0 +1,23 @@
+{
+  "_note": "이 파일은 data_collection_engine (collector)이 관리합니다. 직접 수정하지 마세요.",
+  "monsters": [
+    {
+      "id": "lostark_brelshaza",
+      "name": "Brelshaza",
+      "game": "Lost Ark",
+      "raid": "Phantom Legion Commander",
+      "difficulty": "raid",
+      "fun_factor_score": 9,
+      "mechanic_complexity": 9
+    },
+    {
+      "id": "ff14_alexander",
+      "name": "Alexander Prime",
+      "game": "Final Fantasy XIV",
+      "raid": "The Epic of Alexander (Ultimate)",
+      "difficulty": "ultimate",
+      "fun_factor_score": 10,
+      "mechanic_complexity": 10
+    }
+  ]
+}

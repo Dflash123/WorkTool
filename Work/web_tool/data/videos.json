@@ -1,0 +1,19 @@
+{
+  "_note": "이 파일은 data_collection_engine (collector)이 관리합니다. 직접 수정하지 마세요.",
+  "videos": [
+    {
+      "monster_id": "lostark_brelshaza",
+      "title": "Lost Ark Brelshaza Gate 6 Clear",
+      "youtube_id": "example_id_1",
+      "duration_seconds": 1200,
+      "view_count": 0
+    },
+    {
+      "monster_id": "ff14_alexander",
+      "title": "FFXIV The Epic of Alexander (Ultimate) Clear",
+      "youtube_id": "example_id_2",
+      "duration_seconds": 1800,
+      "view_count": 0
+    }
+  ]
+}
