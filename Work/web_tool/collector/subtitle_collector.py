@@ -1,11 +1,11 @@
 """
 YouTube 영상 자막 수집 (없으면 None 반환)
 """
-from youtube_transcript_api import (
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import (
     NoTranscriptFound,
     TranscriptsDisabled,
     VideoUnavailable,
-    YouTubeTranscriptApi,
 )
 
 from base.utils import get_logger
@@ -19,9 +19,11 @@ def collect_subtitle(video_id: str) -> str | None:
     """
     YouTube video_id → 자막 텍스트 반환.
     자막 없거나 비활성화된 경우 None 반환.
+    youtube-transcript-api 1.x: 인스턴스 메서드 사용
     """
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list_transcripts(video_id)
 
         transcript = _find_best_transcript(transcript_list)
         if transcript is None:
@@ -29,7 +31,10 @@ def collect_subtitle(video_id: str) -> str | None:
             return None
 
         entries = transcript.fetch()
-        text = " ".join(entry["text"] for entry in entries)
+        text = " ".join(
+            entry.get("text", "") if isinstance(entry, dict) else str(entry)
+            for entry in entries
+        )
         logger.info(f"자막 수집 완료 - video_id: {video_id}, 길이: {len(text)}자")
         return text
 

@@ -2,7 +2,7 @@
 YouTube 영상 검색 및 engagement 점수 기반 정렬
 """
 import os
-from datetime import datetime, timezone
+from datetime import date
 
 from googleapiclient.discovery import build
 
@@ -86,9 +86,8 @@ def rank_by_engagement(videos_metadata: list[dict]) -> list[dict]:
         upload_date = video.get("upload_date", "")
         if upload_date:
             try:
-                uploaded = datetime.fromisoformat(upload_date.replace("Z", "+00:00"))
-                now = datetime.now(tz=timezone.utc)
-                days_ago = (now - uploaded).days
+                uploaded = date.fromisoformat(upload_date[:10])
+                days_ago = (date.today() - uploaded).days
                 if days_ago < 365:
                     base *= 1.1
             except ValueError:
